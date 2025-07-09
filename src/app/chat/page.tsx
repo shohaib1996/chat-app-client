@@ -14,9 +14,34 @@ import { useChat } from "@/components/chat/ChatContext"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useMessages, useCreateMessage } from "@/lib/queries"
 import { MessageCircle } from "lucide-react"
+import type { MessageBubbleData } from "@/types"
+
+interface Message {
+  id: string;
+  text?: string;
+  fileUrl?: string;
+  photoUrl?: string;
+  audioUrl?: string;
+  senderId: string;
+  receiverId?: string;
+  groupId?: string;
+  seen: boolean;
+  createdAt: Date;
+  sender?: {
+    name?: string;
+    avatarUrl?: string;
+  };
+  receiver?: {
+    name?: string;
+    avatarUrl?: string;
+  };
+  group?: {
+    name?: string;
+    avatarUrl?: string;
+  };
+}
 
 export default function ChatPage() {
-  const [hasMounted, setHasMounted] = useState(false)
   const { selectedChat, setShowSidebar } = useChat()
   const isMobile = useIsMobile()
   const [newMessage, setNewMessage] = useState("")
@@ -27,13 +52,13 @@ export default function ChatPage() {
   const currentUserId = "current-user-id"
 
   // Use React Query for messages
-  const { data: messages = [], isLoading } = useMessages(currentUserId, selectedChat?.id || "")
+  const { data: messages = [], isLoading } = useMessages(
+    currentUserId,
+    selectedChat?.type === "user" ? selectedChat.id : undefined,
+    selectedChat?.type === "group" ? selectedChat.id : undefined,
+  )
 
   const createMessageMutation = useCreateMessage()
-
-  useEffect(() => {
-    setHasMounted(true)
-  }, [])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -43,21 +68,18 @@ export default function ChatPage() {
     scrollToBottom()
   }, [messages])
 
-  if (!hasMounted) {
-    return null
-  }
-
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMessage.trim() || !selectedChat) return
 
     try {
-      await createMessageMutation.mutateAsync({
+      const messageData = {
         text: newMessage,
         senderId: currentUserId,
-        receiverId: selectedChat.id,
-      })
+        ...(selectedChat.type === "user" ? { receiverId: selectedChat.id } : { groupId: selectedChat.id }),
+      }
 
+      await createMessageMutation.mutateAsync(messageData)
       setNewMessage("")
 
       // Simulate other user typing
@@ -75,6 +97,17 @@ export default function ChatPage() {
   const handleBackToSidebar = () => {
     setShowSidebar(true)
   }
+
+  // Convert Message to MessageBubbleData
+  const convertToMessageBubbleData = (message: Message): MessageBubbleData => ({
+    id: message.id,
+    content: message.text || "",
+    sender: message.senderId === currentUserId ? "user" : "other",
+    timestamp: new Date(message.createdAt),
+    type: message.photoUrl ? "image" : message.fileUrl ? "file" : message.audioUrl ? "audio" : "text",
+    senderName: message.sender?.name || selectedChat?.name,
+    senderAvatar: message.sender?.avatarUrl || selectedChat?.avatar,
+  })
 
   if (!selectedChat) {
     return (
@@ -148,26 +181,11 @@ export default function ChatPage() {
           </div>
         ) : (
           <AnimatePresence>
-            {messages.map((message: {
-              id: string;
-              text: string;
-              senderId: string;
-              createdAt: string;
-              content?: string; // Optional, as it might be 'text'
-              senderName?: string;
-              senderAvatar?: string;
-            }, index: number) => (
+            {messages.map((message: Message, index: number) => (
               <MessageBubble
-                key={message.id || index}
-                message={{
-                  id: message.id || index.toString(),
-                  content: message.text || message.content,
-                  sender: message.senderId === currentUserId ? "user" : "other",
-                  timestamp: new Date(message.createdAt || Date.now()),
-                  type: "text",
-                  senderName: message.senderName || selectedChat.name,
-                  senderAvatar: selectedChat.avatar, // Use selectedChat.avatar directly
-                }}
+                key={message.id}
+                message={convertToMessageBubbleData(message)}
+                isLast={index === messages.length - 1}
               />
             ))}
           </AnimatePresence>

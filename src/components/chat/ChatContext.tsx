@@ -2,17 +2,11 @@
 
 import type React from "react"
 import { createContext, useContext, useState } from "react"
+import type { ChatItem } from "@/types"
 
 interface ChatContextType {
-  selectedChat: {
-    id: string
-    name: string
-    type: "user" | "group"
-    avatar?: string
-    status?: string
-    memberCount?: number
-  } | null
-  setSelectedChat: (chat: ChatContextType["selectedChat"]) => void
+  selectedChat: ChatItem | null
+  setSelectedChat: (chat: ChatItem | null) => void
   showSidebar: boolean
   setShowSidebar: (show: boolean) => void
 }
@@ -20,7 +14,7 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-  const [selectedChat, setSelectedChat] = useState<ChatContextType["selectedChat"]>(null)
+  const [selectedChat, setSelectedChat] = useState<ChatItem | null>(null)
   const [showSidebar, setShowSidebar] = useState(true)
 
   return (

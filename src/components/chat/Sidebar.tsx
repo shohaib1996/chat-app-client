@@ -13,22 +13,11 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useChat } from "./ChatContext"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { useGroups } from "@/lib/queries"
 
-interface Contact {
-  id: string
-  name: string
-  avatar: string
-  status: "online" | "offline" | "away"
-  lastMessage?: string
-  lastSeen?: string
-  unreadCount?: number
-}
-
-
+import type { ChatContact, ChatGroup, Group } from "@/types"
 
 // Mock contacts - replace with actual API call
-const contacts: Contact[] = [
+const contacts: ChatContact[] = [
   {
     id: "1",
     name: "Alex Chen",
@@ -36,6 +25,7 @@ const contacts: Contact[] = [
     status: "online",
     lastMessage: "That sounds exciting! Can you tell me more?",
     unreadCount: 2,
+    type: "user",
   },
   {
     id: "2",
@@ -44,6 +34,7 @@ const contacts: Contact[] = [
     status: "away",
     lastMessage: "See you tomorrow!",
     lastSeen: "2 hours ago",
+    type: "user",
   },
   {
     id: "3",
@@ -52,6 +43,7 @@ const contacts: Contact[] = [
     status: "offline",
     lastMessage: "Thanks for the help",
     lastSeen: "1 day ago",
+    type: "user",
   },
   {
     id: "4",
@@ -60,6 +52,7 @@ const contacts: Contact[] = [
     status: "online",
     lastMessage: "Perfect! Let's do it",
     unreadCount: 1,
+    type: "user",
   },
 ]
 
@@ -69,8 +62,29 @@ export function Sidebar() {
   const { selectedChat, setSelectedChat, showSidebar, setShowSidebar } = useChat()
   const isMobile = useIsMobile()
 
+  // Mock groups - replace with actual API call
+  const mockGroups: ChatGroup[] = [
+    {
+      id: "group1",
+      name: "Project Alpha",
+      avatar: "/placeholder.svg?height=40&width=40",
+      memberCount: 5,
+      lastMessage: "Meeting at 3 PM",
+      type: "group",
+    },
+    {
+      id: "group2",
+      name: "Family Chat",
+      avatar: "/placeholder.svg?height=40&width=40",
+      memberCount: 8,
+      lastMessage: "Happy holidays!",
+      type: "group",
+    },
+  ];
+
   // Use React Query for groups
-  const { data: groups = [], isLoading: groupsLoading } = useGroups()
+  const groups = mockGroups;
+  const groupsLoading = false; // Since we are using mock data, it's not loading
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -85,21 +99,24 @@ export function Sidebar() {
     }
   }
 
-  const handleChatSelect = (chat: {
-    id: string
-    name: string
-    type: "user" | "group"
-    avatar?: string
-    status?: string
-    memberCount?: number
-  }) => {
+  const handleChatSelect = (chat: ChatContact | ChatGroup) => {
     setSelectedChat(chat)
     if (isMobile) {
       setShowSidebar(false)
     }
   }
 
-  const ContactItem = ({ contact }: { contact: Contact }) => (
+  // Convert Group to ChatGroup
+  const convertToGroupChat = (group: Group): ChatGroup => ({
+    id: group.id,
+    name: group.name,
+    avatar: group.avatarUrl,
+    memberCount: group.members?.length || 0,
+    lastMessage: group.messages?.[group.messages.length - 1]?.text,
+    type: "group",
+  })
+
+  const ContactItem = ({ contact }: { contact: ChatContact }) => (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -108,15 +125,7 @@ export function Sidebar() {
       className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
         selectedChat?.id === contact.id ? "bg-primary/10 border border-primary/20" : "hover:bg-accent/50"
       }`}
-      onClick={() =>
-        handleChatSelect({
-          id: contact.id,
-          name: contact.name,
-          type: "user",
-          avatar: contact.avatar,
-          status: contact.status,
-        })
-      }
+      onClick={() => handleChatSelect(contact)}
     >
       <div className="flex items-center space-x-3">
         <div className="relative">
@@ -130,7 +139,7 @@ export function Sidebar() {
             </AvatarFallback>
           </Avatar>
           <div
-            className={`absolute -bottom-1 -right-1 w-4 h-4 ${getStatusColor(contact.status)} rounded-full border-2 border-background ${contact.status === "online" ? "animate-pulse-glow" : ""}`}
+            className={`absolute -bottom-1 -right-1 w-4 h-4 ${getStatusColor(contact.status || "offline")} rounded-full border-2 border-background ${contact.status === "online" ? "animate-pulse-glow" : ""}`}
           ></div>
         </div>
         <div className="flex-1 min-w-0">
@@ -146,17 +155,7 @@ export function Sidebar() {
     </motion.div>
   )
 
-  interface Group {
-  id: string
-  name: string
-  avatar: string
-  memberCount: number
-  lastMessage?: string
-  unreadCount?: number
-  avatarUrl?: string // Add avatarUrl as it's used in the component
-}
-
-  const GroupItem = ({ group }: { group: Group }) => (
+  const GroupItem = ({ group }: { group: ChatGroup }) => (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -165,23 +164,15 @@ export function Sidebar() {
       className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
         selectedChat?.id === group.id ? "bg-primary/10 border border-primary/20" : "hover:bg-accent/50"
       }`}
-      onClick={() =>
-        handleChatSelect({
-          id: group.id,
-          name: group.name,
-          type: "group",
-          avatar: group.avatarUrl || group.avatar,
-          memberCount: group.memberCount,
-        })
-      }
+      onClick={() => handleChatSelect(group)}
     >
       <div className="flex items-center space-x-3">
         <Avatar className="w-12 h-12">
-          <AvatarImage src={group.avatarUrl || group.avatar || "/placeholder.svg"} />
+          <AvatarImage src={group.avatar || "/placeholder.svg"} />
           <AvatarFallback>
             {group.name
               .split(" ")
-              .map((n: string) => n[0])
+              .map((n) => n[0])
               .join("")}
           </AvatarFallback>
         </Avatar>
@@ -191,7 +182,7 @@ export function Sidebar() {
             {group.unreadCount && <Badge className="neo-gradient text-white text-xs">{group.unreadCount}</Badge>}
           </div>
           <p className="text-sm text-muted-foreground truncate">
-            {group.lastMessage || "No messages yet"} • {group.memberCount || 0} members
+            {group.lastMessage || "No messages yet"} • {group.memberCount} members
           </p>
         </div>
       </div>
@@ -305,8 +296,9 @@ export function Sidebar() {
               ) : (
                 <AnimatePresence>
                   {groups
-                    .filter((group: Group) => group.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .map((group: Group, index: number) => (
+                    .map(convertToGroupChat)
+                    .filter((group) => group.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((group, index) => (
                       <motion.div
                         key={group.id}
                         initial={{ opacity: 0, y: 20 }}

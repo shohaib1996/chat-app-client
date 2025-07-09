@@ -3,21 +3,10 @@
 import { motion } from "framer-motion"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { formatDistanceToNow } from "date-fns"
-
-
-
-interface Message {
-  id: string
-  content: string
-  sender: "user" | "other"
-  timestamp: Date
-  type: "text" | "image" | "file"
-  senderName?: string
-  senderAvatar?: string
-}
+import type { MessageBubbleData } from "@/types"
 
 interface MessageBubbleProps {
-  message: Message
+  message: MessageBubbleData
 }
 
 export function MessageBubble({ message }: MessageBubbleProps) {
@@ -33,7 +22,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       <div className={`flex max-w-[70%] ${isUser ? "flex-row-reverse" : "flex-row"} items-end space-x-2`}>
         {!isUser && (
           <Avatar className="w-8 h-8 mb-1">
-            <AvatarImage src={message.senderAvatar || "/placeholder.svg" as string} />
+            <AvatarImage src={message.senderAvatar || "/placeholder.svg"} />
             <AvatarFallback className="text-xs">
               {message.senderName
                 ?.split(" ")
