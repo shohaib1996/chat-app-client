@@ -11,6 +11,9 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Search, Plus, Settings, User, MessageCircle } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useChat } from "./ChatContext"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { useGroups } from "@/lib/queries"
 
 interface Contact {
   id: string
@@ -22,15 +25,9 @@ interface Contact {
   unreadCount?: number
 }
 
-interface Group {
-  id: string
-  name: string
-  avatar: string
-  memberCount: number
-  lastMessage?: string
-  unreadCount?: number
-}
 
+
+// Mock contacts - replace with actual API call
 const contacts: Contact[] = [
   {
     id: "1",
@@ -66,35 +63,14 @@ const contacts: Contact[] = [
   },
 ]
 
-const groups: Group[] = [
-  {
-    id: "1",
-    name: "Design Team",
-    avatar: "/placeholder.svg?height=40&width=40",
-    memberCount: 8,
-    lastMessage: "New mockups are ready for review",
-    unreadCount: 5,
-  },
-  {
-    id: "2",
-    name: "Project Alpha",
-    avatar: "/placeholder.svg?height=40&width=40",
-    memberCount: 12,
-    lastMessage: "Meeting at 3 PM today",
-  },
-  {
-    id: "3",
-    name: "Random Chat",
-    avatar: "/placeholder.svg?height=40&width=40",
-    memberCount: 25,
-    lastMessage: "Anyone up for lunch?",
-    unreadCount: 3,
-  },
-]
-
 export function Sidebar() {
   const [searchQuery, setSearchQuery] = useState("")
   const pathname = usePathname()
+  const { selectedChat, setSelectedChat, showSidebar, setShowSidebar } = useChat()
+  const isMobile = useIsMobile()
+
+  // Use React Query for groups
+  const { data: groups = [], isLoading: groupsLoading } = useGroups()
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -109,12 +85,38 @@ export function Sidebar() {
     }
   }
 
+  const handleChatSelect = (chat: {
+    id: string
+    name: string
+    type: "user" | "group"
+    avatar?: string
+    status?: string
+    memberCount?: number
+  }) => {
+    setSelectedChat(chat)
+    if (isMobile) {
+      setShowSidebar(false)
+    }
+  }
+
   const ContactItem = ({ contact }: { contact: Contact }) => (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       whileHover={{ scale: 1.02 }}
-      className="p-3 rounded-lg hover:bg-accent/50 cursor-pointer transition-all duration-200"
+      whileTap={{ scale: 0.98 }}
+      className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+        selectedChat?.id === contact.id ? "bg-primary/10 border border-primary/20" : "hover:bg-accent/50"
+      }`}
+      onClick={() =>
+        handleChatSelect({
+          id: contact.id,
+          name: contact.name,
+          type: "user",
+          avatar: contact.avatar,
+          status: contact.status,
+        })
+      }
     >
       <div className="flex items-center space-x-3">
         <div className="relative">
@@ -144,20 +146,42 @@ export function Sidebar() {
     </motion.div>
   )
 
+  interface Group {
+  id: string
+  name: string
+  avatar: string
+  memberCount: number
+  lastMessage?: string
+  unreadCount?: number
+  avatarUrl?: string // Add avatarUrl as it's used in the component
+}
+
   const GroupItem = ({ group }: { group: Group }) => (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       whileHover={{ scale: 1.02 }}
-      className="p-3 rounded-lg hover:bg-accent/50 cursor-pointer transition-all duration-200"
+      whileTap={{ scale: 0.98 }}
+      className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+        selectedChat?.id === group.id ? "bg-primary/10 border border-primary/20" : "hover:bg-accent/50"
+      }`}
+      onClick={() =>
+        handleChatSelect({
+          id: group.id,
+          name: group.name,
+          type: "group",
+          avatar: group.avatarUrl || group.avatar,
+          memberCount: group.memberCount,
+        })
+      }
     >
       <div className="flex items-center space-x-3">
         <Avatar className="w-12 h-12">
-          <AvatarImage src={group.avatar || "/placeholder.svg"} />
+          <AvatarImage src={group.avatarUrl || group.avatar || "/placeholder.svg"} />
           <AvatarFallback>
             {group.name
               .split(" ")
-              .map((n) => n[0])
+              .map((n: string) => n[0])
               .join("")}
           </AvatarFallback>
         </Avatar>
@@ -167,15 +191,26 @@ export function Sidebar() {
             {group.unreadCount && <Badge className="neo-gradient text-white text-xs">{group.unreadCount}</Badge>}
           </div>
           <p className="text-sm text-muted-foreground truncate">
-            {group.lastMessage} • {group.memberCount} members
+            {group.lastMessage || "No messages yet"} • {group.memberCount || 0} members
           </p>
         </div>
       </div>
     </motion.div>
   )
 
+  // Mobile: Hide sidebar when chat is selected
+  if (isMobile && !showSidebar) {
+    return null
+  }
+
   return (
-    <div className="h-full flex flex-col bg-card/30 backdrop-blur-sm">
+    <motion.div
+      initial={{ x: isMobile ? -100 : 0, opacity: isMobile ? 0 : 1 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: isMobile ? -100 : 0, opacity: isMobile ? 0 : 1 }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
+      className={`h-full flex flex-col bg-card/30 backdrop-blur-sm ${isMobile ? "absolute inset-0 z-50" : ""}`}
+    >
       {/* Header */}
       <div className="p-4 border-b border-border/50">
         <div className="flex items-center justify-between mb-4">
@@ -259,21 +294,31 @@ export function Sidebar() {
 
           <TabsContent value="groups" className="flex-1 mt-2">
             <ScrollArea className="h-full px-2">
-              <AnimatePresence>
-                {groups
-                  .filter((group) => group.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map((group, index) => (
-                    <motion.div
-                      key={group.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <GroupItem group={group} />
-                    </motion.div>
-                  ))}
-              </AnimatePresence>
+              {groupsLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                    className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full"
+                  />
+                </div>
+              ) : (
+                <AnimatePresence>
+                  {groups
+                    .filter((group: Group) => group.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((group: Group, index: number) => (
+                      <motion.div
+                        key={group.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <GroupItem group={group} />
+                      </motion.div>
+                    ))}
+                </AnimatePresence>
+              )}
             </ScrollArea>
           </TabsContent>
         </Tabs>
@@ -295,6 +340,6 @@ export function Sidebar() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
