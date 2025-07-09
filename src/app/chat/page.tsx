@@ -181,11 +181,10 @@ export default function ChatPage() {
           </div>
         ) : (
           <AnimatePresence>
-            {messages.map((message: Message, index: number) => (
+            {messages.map((message: Message) => (
               <MessageBubble
                 key={message.id}
                 message={convertToMessageBubbleData(message)}
-                isLast={index === messages.length - 1}
               />
             ))}
           </AnimatePresence>

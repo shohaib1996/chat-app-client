@@ -14,7 +14,7 @@ import { usePathname } from "next/navigation"
 import { useChat } from "./ChatContext"
 import { useIsMobile } from "@/hooks/use-mobile"
 
-import type { ChatContact, ChatGroup, Group } from "@/types"
+import type { ChatContact, ChatGroup } from "@/types"
 
 // Mock contacts - replace with actual API call
 const contacts: ChatContact[] = [
@@ -106,15 +106,7 @@ export function Sidebar() {
     }
   }
 
-  // Convert Group to ChatGroup
-  const convertToGroupChat = (group: Group): ChatGroup => ({
-    id: group.id,
-    name: group.name,
-    avatar: group.avatarUrl,
-    memberCount: group.members?.length || 0,
-    lastMessage: group.messages?.[group.messages.length - 1]?.text,
-    type: "group",
-  })
+  
 
   const ContactItem = ({ contact }: { contact: ChatContact }) => (
     <motion.div
@@ -296,7 +288,6 @@ export function Sidebar() {
               ) : (
                 <AnimatePresence>
                   {groups
-                    .map(convertToGroupChat)
                     .filter((group) => group.name.toLowerCase().includes(searchQuery.toLowerCase()))
                     .map((group, index) => (
                       <motion.div
