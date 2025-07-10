@@ -63,7 +63,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               ${
                 isUser
                   ? "right-0 translate-x-1 neo-gradient"
-                  : "left-0 -translate-x-1 bg-card border-l border-b border-border/50"
+                  : "left-0 -translate-x-1 bg-card border-l border-b border-border/50 neo-gradient"
               }
               transform rotate-45
             `}

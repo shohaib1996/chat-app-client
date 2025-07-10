@@ -14,11 +14,19 @@ import type {
   UpdateGroupMemberRequest,
 } from "@/types"
 
+interface AuthProfileResponse {
+  data: User;
+}
+
 // Auth queries
+interface AuthProfileResponse {
+  data: User;
+}
+
 export const useProfile = () => {
   return useQuery<User>({
     queryKey: ["profile"],
-    queryFn: () => authAPI.getProfile().then((res) => res.data),
+    queryFn: () => authAPI.getProfile().then((res) => (res.data)),
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
 }

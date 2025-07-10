@@ -17,7 +17,7 @@ export function TypingIndicator() {
           <AvatarFallback className="text-xs">AC</AvatarFallback>
         </Avatar>
 
-        <div className="ml-2">
+        {/* <div className="ml-2">
           <p className="text-xs text-muted-foreground mb-1 px-2">Alex Chen</p>
 
           <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-card border border-border/50 relative">
@@ -39,10 +39,10 @@ export function TypingIndicator() {
               ))}
             </div>
 
-            {/* Message tail */}
+
             <div className="absolute bottom-0 left-0 -translate-x-1 w-3 h-3 bg-card border-l border-b border-border/50 transform rotate-45" />
           </div>
-        </div>
+        </div> */}
       </div>
     </motion.div>
   )

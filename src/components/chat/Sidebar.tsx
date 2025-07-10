@@ -193,12 +193,12 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <div className="p-4 border-b border-border/50">
-        <div className="flex space-x-1">
+      <div className="p-2 border-b border-border/50">
+        <div className="flex">
           <Link href="/chat" className="flex-1">
             <Button
               variant={pathname === "/chat" ? "default" : "ghost"}
-              className={`w-full justify-start ${pathname === "/chat" ? "neo-gradient text-white" : ""}`}
+              className={`w-full cursor-pointer justify-start ${pathname === "/chat" ? "neo-gradient text-white" : ""}`}
             >
               <MessageCircle className="w-4 h-4 mr-2" />
               Chats
@@ -207,7 +207,7 @@ export function Sidebar() {
           <Link href="/chat/profile" className="flex-1">
             <Button
               variant={pathname === "/chat/profile" ? "default" : "ghost"}
-              className={`w-full justify-start ${pathname === "/chat/profile" ? "neo-gradient text-white" : ""}`}
+              className={`w-full cursor-pointer justify-start ${pathname === "/chat/profile" ? "neo-gradient text-white" : ""}`}
             >
               <User className="w-4 h-4 mr-2" />
               Profile
@@ -216,7 +216,7 @@ export function Sidebar() {
           <Link href="/chat/settings" className="flex-1">
             <Button
               variant={pathname === "/chat/settings" ? "default" : "ghost"}
-              className={`w-full justify-start ${pathname === "/chat/settings" ? "neo-gradient text-white" : ""}`}
+              className={`w-full cursor-pointer justify-start ${pathname === "/chat/settings" ? "neo-gradient text-white" : ""}`}
             >
               <Settings className="w-4 h-4 mr-2" />
               Settings
@@ -228,9 +228,9 @@ export function Sidebar() {
       {/* Conversations */}
       <div className="flex-1 overflow-hidden">
         <Tabs defaultValue="chats" className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 mx-4 mt-2">
-            <TabsTrigger value="chats">Chats</TabsTrigger>
-            <TabsTrigger value="groups">Groups</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mt-2 px-2 ">
+            <TabsTrigger className="cursor-pointer" value="chats">Chats</TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="groups">Groups</TabsTrigger>
           </TabsList>
 
           <TabsContent value="chats" className="flex-1 mt-2">

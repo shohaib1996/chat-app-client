@@ -3,13 +3,12 @@ export interface User {
   id: string
   name: string
   email: string
-  password: string
   avatarUrl?: string
   status?: string
-  createdAt: Date
-  messagesSent?: Message[]
-  messagesReceived?: Message[]
-  groupMembers?: GroupMember[]
+}
+
+export interface AuthUserProfile {
+  data: User
 }
 
 export interface Message {

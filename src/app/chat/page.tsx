@@ -43,6 +43,7 @@ interface Message {
 
 export default function ChatPage() {
   const { selectedChat, setShowSidebar } = useChat()
+  console.log(selectedChat, "selected chat")
   const isMobile = useIsMobile()
   const [newMessage, setNewMessage] = useState("")
   const [otherUserTyping, setOtherUserTyping] = useState(false)
@@ -52,11 +53,13 @@ export default function ChatPage() {
   const currentUserId = "686dfe91ce75eb7357ad2db5"
 
   // Use React Query for messages
-  const { data: messages = [], isLoading } = useMessages(
+  const { data: messagesData, isLoading } = useMessages(
     currentUserId,
     selectedChat?.type === "user" ? selectedChat.id : undefined,
-    selectedChat?.type === "group" ? selectedChat.id : undefined,
+    selectedChat?.type === "group" ? selectedChat.id : undefined
   )
+
+  const messages: Message[] = (messagesData as any)?.data || []
 
   const createMessageMutation = useCreateMessage()
 

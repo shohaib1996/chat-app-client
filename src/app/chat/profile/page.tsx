@@ -1,30 +1,64 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Camera, Save, User, Mail, Phone, MapPin } from "lucide-react"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Camera, Save, User, Mail } from "lucide-react";
+import { useProfile, useUpdateProfile } from "@/lib/queries";
+import type { User as UserType } from "@/types";
 
 export default function ProfilePage() {
-  const [isEditing, setIsEditing] = useState(false)
-  const [profile, setProfile] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567",
-    location: "San Francisco, CA",
-    status: "Building the future, one line of code at a time 🚀",
-    avatar: "/placeholder.svg?height=120&width=120",
-  })
+  const { data: profileData, isLoading, isError } = useProfile();
+  const updateProfileMutation = useUpdateProfile();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [profile, setProfile] = useState<UserType>({
+    id: "",
+    name: "",
+    email: "",
+    status: "",
+    avatarUrl: "",
+  });
+
+  useEffect(() => {
+    if (profileData) {
+      setProfile((profileData as any).data);
+    }
+  }, [profileData]);
 
   const handleSave = () => {
-    setIsEditing(false)
-    // Here you would typically save to your backend
+    updateProfileMutation.mutate(
+      {
+        name: profile.name,
+        avatarUrl: profile.avatarUrl,
+        status: profile.status,
+      },
+      {
+        onSuccess: () => {
+          setIsEditing(false);
+        },
+      }
+    );
+  };
+
+  if (isLoading) {
+    return <div>Loading profile...</div>;
+  }
+
+  if (isError) {
+    return <div>Error loading profile.</div>;
   }
 
   return (
@@ -36,20 +70,29 @@ export default function ProfilePage() {
       >
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-2">Profile Settings</h1>
-          <p className="text-muted-foreground">Manage your account information and preferences</p>
+          <p className="text-muted-foreground">
+            Manage your account information and preferences
+          </p>
         </div>
 
         <Card className="glass-effect border-border/50">
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
-            <CardDescription>Update your profile details and avatar</CardDescription>
+            <CardDescription>
+              Update your profile details and avatar
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Avatar Section */}
             <div className="flex flex-col items-center space-y-4">
               <div className="relative group">
                 <Avatar className="w-32 h-32">
-                  <AvatarImage src={profile.avatar || "/placeholder.svg"} />
+                  <AvatarImage
+                    src={
+                      profile.avatarUrl ||
+                      "/placeholder.svg?height=120&width=120"
+                    }
+                  />
                   <AvatarFallback className="text-2xl">JD</AvatarFallback>
                 </Avatar>
                 <motion.div
@@ -72,8 +115,10 @@ export default function ProfilePage() {
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
                     id="name"
-                    value={profile.name}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                    value={profile.name || ""}
+                    onChange={(e) =>
+                      setProfile({ ...profile, name: e.target.value })
+                    }
                     disabled={!isEditing}
                     className="pl-10"
                   />
@@ -85,55 +130,18 @@ export default function ProfilePage() {
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
+                    readOnly
                     id="email"
                     type="email"
-                    value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                    value={profile.email || ""}
+                    onChange={(e) =>
+                      setProfile({ ...profile, email: e.target.value })
+                    }
                     disabled={!isEditing}
                     className="pl-10"
                   />
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    id="phone"
-                    value={profile.phone}
-                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                    disabled={!isEditing}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    id="location"
-                    value={profile.location}
-                    onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                    disabled={!isEditing}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">Status Message</Label>
-              <Textarea
-                id="status"
-                value={profile.status}
-                onChange={(e) => setProfile({ ...profile, status: e.target.value })}
-                disabled={!isEditing}
-                placeholder="What's on your mind?"
-                className="resize-none"
-              />
             </div>
 
             <div className="flex justify-end space-x-2">
@@ -142,13 +150,19 @@ export default function ProfilePage() {
                   <Button variant="outline" onClick={() => setIsEditing(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleSave} className="neo-gradient text-white">
+                  <Button
+                    onClick={handleSave}
+                    className="neo-gradient text-white"
+                  >
                     <Save className="w-4 h-4 mr-2" />
                     Save Changes
                   </Button>
                 </>
               ) : (
-                <Button onClick={() => setIsEditing(true)} className="neo-gradient text-white">
+                <Button
+                  onClick={() => setIsEditing(true)}
+                  className="neo-gradient text-white"
+                >
                   Edit Profile
                 </Button>
               )}
@@ -165,7 +179,9 @@ export default function ProfilePage() {
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-primary">1,234</div>
-                <div className="text-sm text-muted-foreground">Messages Sent</div>
+                <div className="text-sm text-muted-foreground">
+                  Messages Sent
+                </div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-primary">56</div>
@@ -180,5 +196,5 @@ export default function ProfilePage() {
         </Card>
       </motion.div>
     </div>
-  )
+  );
 }
