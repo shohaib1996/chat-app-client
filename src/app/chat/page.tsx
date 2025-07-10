@@ -49,7 +49,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Mock user ID - replace with actual auth
-  const currentUserId = "current-user-id"
+  const currentUserId = "686dfe91ce75eb7357ad2db5"
 
   // Use React Query for messages
   const { data: messages = [], isLoading } = useMessages(

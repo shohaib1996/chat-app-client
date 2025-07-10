@@ -61,6 +61,9 @@ export const authAPI = {
   getProfile: (): Promise<{ data: User }> => api.get("/auth/profile"),
 
   updateProfile: (data: UpdateProfileRequest): Promise<{ data: User }> => api.put("/auth/profile", data),
+
+  getAllUsers: (): Promise<{data: User[]}> => api.get("/auth/users")
+  
 }
 
 export const messagesAPI = {

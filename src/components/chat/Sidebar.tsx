@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -13,78 +14,55 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useChat } from "./ChatContext"
 import { useIsMobile } from "@/hooks/use-mobile"
-
-import type { ChatContact, ChatGroup } from "@/types"
-
-// Mock contacts - replace with actual API call
-const contacts: ChatContact[] = [
-  {
-    id: "1",
-    name: "Alex Chen",
-    avatar: "/placeholder.svg?height=40&width=40",
-    status: "online",
-    lastMessage: "That sounds exciting! Can you tell me more?",
-    unreadCount: 2,
-    type: "user",
-  },
-  {
-    id: "2",
-    name: "Sarah Johnson",
-    avatar: "/placeholder.svg?height=40&width=40",
-    status: "away",
-    lastMessage: "See you tomorrow!",
-    lastSeen: "2 hours ago",
-    type: "user",
-  },
-  {
-    id: "3",
-    name: "Mike Wilson",
-    avatar: "/placeholder.svg?height=40&width=40",
-    status: "offline",
-    lastMessage: "Thanks for the help",
-    lastSeen: "1 day ago",
-    type: "user",
-  },
-  {
-    id: "4",
-    name: "Emma Davis",
-    avatar: "/placeholder.svg?height=40&width=40",
-    status: "online",
-    lastMessage: "Perfect! Let's do it",
-    unreadCount: 1,
-    type: "user",
-  },
-]
+import { authAPI, groupsAPI } from "@/lib/api"
+import type { ChatContact, ChatGroup, User as ApiUser, Group as ApiGroup } from "@/types"
 
 export function Sidebar() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [isClient, setIsClient] = useState(false)
   const pathname = usePathname()
   const { selectedChat, setSelectedChat, showSidebar, setShowSidebar } = useChat()
   const isMobile = useIsMobile()
 
-  // Mock groups - replace with actual API call
-  const mockGroups: ChatGroup[] = [
-    {
-      id: "group1",
-      name: "Project Alpha",
-      avatar: "/placeholder.svg?height=40&width=40",
-      memberCount: 5,
-      lastMessage: "Meeting at 3 PM",
-      type: "group",
-    },
-    {
-      id: "group2",
-      name: "Family Chat",
-      avatar: "/placeholder.svg?height=40&width=40",
-      memberCount: 8,
-      lastMessage: "Happy holidays!",
-      type: "group",
-    },
-  ];
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
-  // Use React Query for groups
-  const groups = mockGroups;
-  const groupsLoading = false; // Since we are using mock data, it's not loading
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: ["users"],
+    queryFn: authAPI.getAllUsers,
+    enabled: isClient, // Only fetch on the client
+  })
+
+  console.log(usersData)
+
+  const { data: groupsData, isLoading: groupsLoading } = useQuery({
+    queryKey: ["groups"],
+    queryFn: groupsAPI.getGroups,
+    enabled: isClient, // Only fetch on the client
+  })
+
+  const contacts: ChatContact[] =
+    (usersData as any)?.data?.data.map((user: ApiUser) => ({
+      id: user.id,
+      name: user.name,
+      avatar: user.avatarUrl,
+      status: user.status || "offline",
+      lastMessage: "No messages yet",
+      unreadCount: 0,
+      type: "user",
+    })) || []
+
+  const groups: ChatGroup[] =
+    (groupsData as any)?.data?.data.map((group: ApiGroup) => ({
+      id: group.id,
+      name: group.name,
+      avatar: group.avatarUrl,
+      memberCount: group.members?.length || 0,
+      lastMessage: "No messages yet",
+      unreadCount: 0,
+      type: "group",
+    })) || []
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -105,8 +83,6 @@ export function Sidebar() {
       setShowSidebar(false)
     }
   }
-
-  
 
   const ContactItem = ({ contact }: { contact: ChatContact }) => (
     <motion.div
@@ -131,7 +107,9 @@ export function Sidebar() {
             </AvatarFallback>
           </Avatar>
           <div
-            className={`absolute -bottom-1 -right-1 w-4 h-4 ${getStatusColor(contact.status || "offline")} rounded-full border-2 border-background ${contact.status === "online" ? "animate-pulse-glow" : ""}`}
+            className={`absolute -bottom-1 -right-1 w-4 h-4 ${getStatusColor(
+              contact.status || "offline",
+            )} rounded-full border-2 border-background ${contact.status === "online" ? "animate-pulse-glow" : ""}`}
           ></div>
         </div>
         <div className="flex-1 min-w-0">
@@ -257,27 +235,37 @@ export function Sidebar() {
 
           <TabsContent value="chats" className="flex-1 mt-2">
             <ScrollArea className="h-full px-2">
-              <AnimatePresence>
-                {contacts
-                  .filter((contact) => contact.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map((contact, index) => (
-                    <motion.div
-                      key={contact.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <ContactItem contact={contact} />
-                    </motion.div>
-                  ))}
-              </AnimatePresence>
+              {usersLoading && !isClient ? (
+                <div className="flex items-center justify-center h-32">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                    className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full"
+                  />
+                </div>
+              ) : (
+                <AnimatePresence>
+                  {contacts
+                    .filter((contact) => contact.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((contact, index) => (
+                      <motion.div
+                        key={contact.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <ContactItem contact={contact} />
+                      </motion.div>
+                    ))}
+                </AnimatePresence>
+              )}
             </ScrollArea>
           </TabsContent>
 
           <TabsContent value="groups" className="flex-1 mt-2">
             <ScrollArea className="h-full px-2">
-              {groupsLoading ? (
+              {groupsLoading && !isClient ? (
                 <div className="flex items-center justify-center h-32">
                   <motion.div
                     animate={{ rotate: 360 }}
