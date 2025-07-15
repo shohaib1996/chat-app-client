@@ -10,12 +10,15 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Search, Plus, Settings, User, MessageCircle } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useCreateGroup } from "@/lib/queries"
+import type { ChatContact, ChatGroup, User as ApiUser, Group as ApiGroup } from "@/types"
 import { useChat } from "./ChatContext"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { authAPI, groupsAPI } from "@/lib/api"
-import type { ChatContact, ChatGroup, User as ApiUser, Group as ApiGroup } from "@/types"
 
 export function Sidebar() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -23,6 +26,10 @@ export function Sidebar() {
   const pathname = usePathname()
   const { selectedChat, setSelectedChat, showSidebar, setShowSidebar } = useChat()
   const isMobile = useIsMobile()
+
+  const [isCreateGroupDialogOpen, setIsCreateGroupDialogOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupAvatarUrl, setNewGroupAvatarUrl] = useState("");
 
   useEffect(() => {
     setIsClient(true)
@@ -41,6 +48,8 @@ export function Sidebar() {
     queryFn: groupsAPI.getGroups,
     enabled: isClient, // Only fetch on the client
   })
+
+  const createGroupMutation = useCreateGroup()
 
   const contacts: ChatContact[] =
     (usersData as any)?.data?.data.map((user: ApiUser) => ({
@@ -83,6 +92,29 @@ export function Sidebar() {
       setShowSidebar(false)
     }
   }
+
+  const handleCreateGroup = () => {
+    if (newGroupName.trim() === "") {
+      // Optionally, show a toast or error message to the user
+      alert("Group name cannot be empty.");
+      return;
+    }
+
+    createGroupMutation.mutate(
+      { name: newGroupName, avatarUrl: newGroupAvatarUrl || undefined },
+      {
+        onSuccess: () => {
+          setIsCreateGroupDialogOpen(false);
+          setNewGroupName("");
+          setNewGroupAvatarUrl("");
+        },
+        onError: (error) => {
+          console.error("Failed to create group:", error);
+          alert("Failed to create group. Please try again."); // Basic error feedback
+        },
+      }
+    );
+  };
 
   const ContactItem = ({ contact }: { contact: ChatContact }) => (
     <motion.div
@@ -175,8 +207,8 @@ export function Sidebar() {
       {/* Header */}
       <div className="p-4 border-b border-border/50">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold neo-gradient bg-clip-text text-transparent">NeoChat</h2>
-          <Button size="icon" variant="ghost" className="hover:bg-primary/10">
+          <h2 className="text-xl font-bold neo-gradient bg-clip-text text-white">NeoChat</h2>
+          <Button size="icon" variant="ghost" className="hover:bg-primary/10" onClick={() => setIsCreateGroupDialogOpen(true)}>
             <Plus className="w-4 h-4" />
           </Button>
         </div>
@@ -311,6 +343,50 @@ export function Sidebar() {
           </div>
         </div>
       </div>
+
+      <Dialog open={isCreateGroupDialogOpen} onOpenChange={setIsCreateGroupDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-white dark:bg-gray-800">
+          <DialogHeader>
+            <DialogTitle>Create New Group</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="groupName">Group Name</Label>
+              <Input
+                id="groupName"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                placeholder="Enter group name"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="groupAvatar">Avatar URL (Optional)</Label>
+              <Input
+                id="groupAvatar"
+                value={newGroupAvatarUrl}
+                onChange={(e) => setNewGroupAvatarUrl(e.target.value)}
+                placeholder="Enter avatar URL"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleCreateGroup} disabled={createGroupMutation.isPending}>
+              {createGroupMutation.isPending ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                />
+              ) : (
+                "Create Group"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   )
 }
