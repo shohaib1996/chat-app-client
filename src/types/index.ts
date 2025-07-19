@@ -74,6 +74,7 @@ export interface CreateMessageRequest {
 export interface CreateGroupRequest {
   name: string
   avatarUrl?: string
+  memberIds?: string[]
 }
 
 export interface UpdateGroupRequest {

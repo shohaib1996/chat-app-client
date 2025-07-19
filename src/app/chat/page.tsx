@@ -8,7 +8,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ArrowLeft, Send, Paperclip, Smile, MoreVertical } from "lucide-react"
 import { MessageBubble } from "@/components/chat/MessageBubble"
 import { TypingIndicator } from "@/components/chat/TypingIndicator"
-import { useChat } from "@/components/chat/ChatContext"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useMessages, useCreateMessage, useEditMessage, useDeleteMessage } from "@/lib/queries"
 import { MessageCircle } from "lucide-react"
@@ -16,6 +15,8 @@ import type { MessageBubbleData } from "@/types"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Portal } from "@/components/ui/portal"
+import { useSession } from "next-auth/react"
+import { useChat } from "@/components/chat/ChatContext"
 
 interface Message {
   id: string
@@ -44,7 +45,7 @@ interface Message {
 
 export default function ChatPage() {
   const { selectedChat, setShowSidebar } = useChat()
-  console.log(selectedChat, "selected chat")
+  console.log(selectedChat, "selected chat in page.tsx");
   const isMobile = useIsMobile()
   const [newMessage, setNewMessage] = useState("")
   const [otherUserTyping, setOtherUserTyping] = useState(false)
@@ -55,8 +56,12 @@ export default function ChatPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null)
 
-  // Mock user ID - replace with actual auth
-  const currentUserId = "686dfe91ce75eb7357ad2db5"
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
+
+  useEffect(() => {
+    console.log("ChatPage - selectedChat (from useChat):", selectedChat);
+  }, [selectedChat]);
 
   // Use React Query for messages
   const { data: messagesData, isLoading } = useMessages(
@@ -158,6 +163,34 @@ export default function ChatPage() {
     senderName: message.sender?.name || selectedChat?.name,
     senderAvatar: message.sender?.avatarUrl || selectedChat?.avatar,
   })
+
+  if (!selectedChat) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gradient-to-br from-background to-background/50">
+        <div className="text-center space-y-4">
+          <div className="w-24 h-24 mx-auto rounded-full neo-gradient flex items-center justify-center">
+            <MessageCircle className="w-12 h-12 text-white" />
+          </div>
+          <h3 className="text-xl font-semibold">Select a conversation</h3>
+          <p className="text-muted-foreground">Choose a contact or group to start messaging</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!selectedChat) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gradient-to-br from-background to-background/50">
+        <div className="text-center space-y-4">
+          <div className="w-24 h-24 mx-auto rounded-full neo-gradient flex items-center justify-center">
+            <MessageCircle className="w-12 h-12 text-white" />
+          </div>
+          <h3 className="text-xl font-semibold">Select a conversation</h3>
+          <p className="text-muted-foreground">Choose a contact or group to start messaging</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!selectedChat) {
     return (

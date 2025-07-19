@@ -25,14 +25,13 @@ export const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage or your auth provider
-    const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null
+    const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
 
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
-    return config
+    return config;
   },
   (error) => {
     return Promise.reject(error)
@@ -58,12 +57,17 @@ api.interceptors.response.use(
 export const authAPI = {
   register: (data: RegisterRequest): Promise<{ data: User }> => api.post("/auth/register", data),
 
+  login: (data: { email: string; password: string }): Promise<{ data: { user: User; token: string } }> =>
+    api.post("/auth/login", data),
+
   getProfile: (): Promise<{ data: User }> => api.get("/auth/profile"),
 
   updateProfile: (data: UpdateProfileRequest): Promise<{ data: User }> => api.put("/auth/profile", data),
 
-  getAllUsers: (): Promise<{data: User[]}> => api.get("/auth/users")
-  
+  getAllUsers: (): Promise<{data: User[]}> => api.get("/auth/users"),
+
+  search: (name: string, type: string): Promise<{ data: User[] }> =>
+    api.get(`/search?name=${name}&type=${type}`),
 }
 
 export const messagesAPI = {

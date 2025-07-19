@@ -48,6 +48,14 @@ export const useUpdateProfile = () => {
   })
 }
 
+export const useSearch = (name: string, type: string) => {
+  return useQuery<User[]>({
+    queryKey: ["search", name, type],
+    queryFn: () => authAPI.search(name, type).then((res) => res.data),
+    enabled: !!name,
+  })
+}
+
 // Message queries
 export const useMessages = (senderId: string, receiverId?: string, groupId?: string) => {
   return useQuery<Message[]>({

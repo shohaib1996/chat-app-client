@@ -11,21 +11,36 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { signIn } from "next-auth/react"
 
 export default function SignInPage() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError(null)
 
-    // Simulate authentication
-    setTimeout(() => {
-      setIsLoading(false)
-      router.push("/chat")
-    }, 2000)
+    const result = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
+    })
+
+    setIsLoading(false)
+
+    if (result?.error) {
+      setError(result.error);
+    } else if (result) {
+      // The session object is not directly available here.
+      // We will redirect and let a component in the main app layout handle token storage.
+      router.push("/chat");
+    }
   }
 
   return (
@@ -67,6 +82,11 @@ export default function SignInPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="bg-red-500/20 border border-red-500/50 text-red-300 text-sm rounded-lg p-3 text-center">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-white/90">
                   Email
@@ -79,6 +99,8 @@ export default function SignInPage() {
                     placeholder="Enter your email"
                     className="pl-10 glass-effect border-white/30 text-white placeholder:text-white/50 focus:border-pink-400"
                     required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
               </div>
@@ -95,6 +117,8 @@ export default function SignInPage() {
                     placeholder="Enter your password"
                     className="pl-10 pr-10 glass-effect border-white/30 text-white placeholder:text-white/50 focus:border-pink-400"
                     required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
                   <button
                     type="button"

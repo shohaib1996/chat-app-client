@@ -17,6 +17,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [selectedChat, setSelectedChat] = useState<ChatItem | null>(null)
   const [showSidebar, setShowSidebar] = useState(true)
 
+  console.log("ChatContext - selectedChat:", selectedChat);
+
   return (
     <ChatContext.Provider
       value={{

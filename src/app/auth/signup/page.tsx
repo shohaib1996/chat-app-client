@@ -11,22 +11,45 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { signIn } from "next-auth/react"
 
 export default function SignUpPage() {
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError(null)
 
-    // Simulate registration
-    setTimeout(() => {
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
       setIsLoading(false)
-      router.push("/chat")
-    }, 2000)
+      return
+    }
+
+    const result = await signIn("credentials", {
+      redirect: false,
+      name,
+      email,
+      password,
+      isSignUp: "true",
+    })
+
+    setIsLoading(false)
+
+    if (result?.error) {
+      setError(result.error);
+    } else if (result) {
+      router.push("/chat");
+    }
   }
 
   return (
@@ -68,6 +91,11 @@ export default function SignUpPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="bg-red-500/20 border border-red-500/50 text-red-300 text-sm rounded-lg p-3 text-center">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-white/90">
                   Full Name
@@ -80,6 +108,8 @@ export default function SignUpPage() {
                     placeholder="Enter your full name"
                     className="pl-10 glass-effect border-white/30 text-white placeholder:text-white/50 focus:border-pink-400"
                     required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                   />
                 </div>
               </div>
@@ -96,6 +126,8 @@ export default function SignUpPage() {
                     placeholder="Enter your email"
                     className="pl-10 glass-effect border-white/30 text-white placeholder:text-white/50 focus:border-pink-400"
                     required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
               </div>
@@ -112,6 +144,8 @@ export default function SignUpPage() {
                     placeholder="Create a password"
                     className="pl-10 pr-10 glass-effect border-white/30 text-white placeholder:text-white/50 focus:border-pink-400"
                     required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
                   <button
                     type="button"
@@ -135,6 +169,8 @@ export default function SignUpPage() {
                     placeholder="Confirm your password"
                     className="pl-10 pr-10 glass-effect border-white/30 text-white placeholder:text-white/50 focus:border-pink-400"
                     required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                   />
                   <button
                     type="button"
