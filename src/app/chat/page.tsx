@@ -1,122 +1,181 @@
-"use client"
-import type React from "react"
-import { useState, useEffect, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ArrowLeft, Send, Paperclip, Smile, MoreVertical } from "lucide-react"
-import { MessageBubble } from "@/components/chat/MessageBubble"
-import { TypingIndicator } from "@/components/chat/TypingIndicator"
-import { useIsMobile } from "@/hooks/use-mobile"
-import { useMessages, useCreateMessage, useEditMessage, useDeleteMessage } from "@/lib/queries"
-import { MessageCircle } from "lucide-react"
-import type { MessageBubbleData } from "@/types"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Portal } from "@/components/ui/portal"
-import { useSession } from "next-auth/react"
-import { useChat } from "@/components/chat/ChatContext"
+"use client";
+
+import type React from "react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ArrowLeft, Send, Paperclip, Smile, MoreVertical } from "lucide-react";
+import { MessageBubble } from "@/components/chat/MessageBubble";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useMessages, useCreateMessage, useEditMessage, useDeleteMessage } from "@/lib/queries";
+import { MessageCircle } from "lucide-react";
+import type { MessageBubbleData } from "@/types";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Portal } from "@/components/ui/portal";
+import { useSession } from "next-auth/react";
+import { useChat } from "@/components/chat/ChatContext";
+import { useSocket } from "@/components/socket/SocketContext";
+import { useQuery } from "@tanstack/react-query";
+import { authAPI } from "@/lib/api";
 
 interface Message {
-  id: string
-  text?: string
-  fileUrl?: string
-  photoUrl?: string
-  audioUrl?: string
-  senderId: string
-  receiverId?: string
-  groupId?: string
-  seen: boolean
-  createdAt: Date
+  id: string;
+  text?: string;
+  fileUrl?: string;
+  photoUrl?: string;
+  audioUrl?: string;
+  senderId: string;
+  receiverId?: string;
+  groupId?: string;
+  seen: boolean;
+  createdAt: Date;
   sender?: {
-    name?: string
-    avatarUrl?: string
-  }
+    name?: string;
+    avatarUrl?: string;
+  };
   receiver?: {
-    name?: string
-    avatarUrl?: string
-  }
+    name?: string;
+    avatarUrl?: string;
+  };
   group?: {
-    name?: string
-    avatarUrl?: string
-  }
+    name?: string;
+    avatarUrl?: string;
+  };
 }
 
 export default function ChatPage() {
-  const { selectedChat, setShowSidebar } = useChat()
-  console.log(selectedChat, "selected chat in page.tsx");
-  const isMobile = useIsMobile()
-  const [newMessage, setNewMessage] = useState("")
-  const [otherUserTyping, setOtherUserTyping] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [editingMessage, setEditingMessage] = useState<Message | null>(null)
-  const [editedMessageContent, setEditedMessageContent] = useState("")
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [messageToDelete, setMessageToDelete] = useState<string | null>(null)
+  console.log("ChatPage component rendering.");
+  const { selectedChat, setShowSidebar, typingUsers, onlineUsers } = useChat();
+  const { socket } = useSocket();
+  const isMobile = useIsMobile();
+  const [newMessage, setNewMessage] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [editedMessageContent, setEditedMessageContent] = useState("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
 
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
 
+  // Fetch user data to map userId to names
+  const { data: usersData } = useQuery({
+    queryKey: ["users"],
+    queryFn: authAPI.getAllUsers,
+  });
+  const userMap = new Map(
+    (usersData as any)?.data?.data.map((user: any) => [user.id, user.name]) || []
+  );
+  console.log('usersData:', usersData);
+  console.log('userMap:', Array.from(userMap.entries()));
+
   useEffect(() => {
     console.log("ChatPage - selectedChat (from useChat):", selectedChat);
   }, [selectedChat]);
+
+  // Join/leave chat room
+  useEffect(() => {
+    if (!socket || !selectedChat) return;
+
+    const roomId = selectedChat.id; // Match backend's room
+    console.log('Joining room:', roomId); // Debug log
+    socket.emit("joinRoom", roomId);
+
+    return () => {
+      console.log('Leaving room:', roomId); // Debug log
+      socket.emit("leaveRoom", roomId);
+    };
+  }, [socket, selectedChat]);
+
+  // Handle typing events
+  useEffect(() => {
+    if (!socket || !isTyping) return;
+
+    const roomId = selectedChat?.id; // Match backend's room
+    console.log('Emitting typing:', roomId); // Debug log
+    socket.emit("typing", roomId);
+
+    const typingTimeout = setTimeout(() => {
+      setIsTyping(false);
+      if (selectedChat) {
+        console.log('Emitting stopTyping:', roomId); // Debug log
+        socket.emit("stopTyping", roomId);
+      }
+    }, 2000); // Stop typing after 2 seconds of inactivity
+
+    return () => clearTimeout(typingTimeout);
+  }, [socket, isTyping, selectedChat]);
 
   // Use React Query for messages
   const { data: messagesData, isLoading } = useMessages(
     currentUserId,
     selectedChat?.type === "user" ? selectedChat.id : undefined,
     selectedChat?.type === "group" ? selectedChat.id : undefined,
-  )
+  );
 
-  const messages: Message[] = (messagesData as any)?.data || []
-  const createMessageMutation = useCreateMessage()
-  const editMessageMutation = useEditMessage()
-  const deleteMessageMutation = useDeleteMessage()
+  const messages: Message[] = (messagesData as any)?.data || [];
+  const createMessageMutation = useCreateMessage();
+  const editMessageMutation = useEditMessage();
+  const deleteMessageMutation = useDeleteMessage();
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    scrollToBottom();
+  }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newMessage.trim() || !selectedChat) return
+    e.preventDefault();
+    if (!newMessage.trim() || !selectedChat || !socket) return;
 
     try {
       const messageData = {
         text: newMessage,
         senderId: currentUserId,
         ...(selectedChat.type === "user" ? { receiverId: selectedChat.id } : { groupId: selectedChat.id }),
-      }
+      };
 
-      await createMessageMutation.mutateAsync(messageData)
-      setNewMessage("")
-
-      // Simulate other user typing
-      setTimeout(() => {
-        setOtherUserTyping(true)
-        setTimeout(() => {
-          setOtherUserTyping(false)
-        }, 2000)
-      }, 1000)
+      socket.emit("sendMessage", messageData); // Use socket to send message
+      setNewMessage("");
+      setIsTyping(false);
+      const roomId = selectedChat.id; // Match backend's room
+      socket.emit("stopTyping", roomId);
     } catch (error) {
-      console.error("Failed to send message:", error)
+      console.error("Failed to send message:", error);
     }
-  }
+  };
+
+  const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    if (!socket || !selectedChat) return;
+
+    const roomId = selectedChat.id; // Match backend's room
+    if (!isTyping && e.target.value) {
+      setIsTyping(true);
+      console.log('Emitting typing:', roomId); // Debug log
+      socket.emit("typing", roomId);
+    } else if (isTyping && !e.target.value) {
+      setIsTyping(false);
+      console.log('Emitting stopTyping:', roomId); // Debug log
+      socket.emit("stopTyping", roomId);
+    }
+  };
 
   const handleEditMessage = (messageId: string) => {
-    const messageToEdit = messages.find((m) => m.id === messageId)
+    const messageToEdit = messages.find((m) => m.id === messageId);
     if (messageToEdit) {
-      setEditingMessage(messageToEdit)
-      setEditedMessageContent(messageToEdit.text || "")
-      setIsEditDialogOpen(true)
+      setEditingMessage(messageToEdit);
+      setEditedMessageContent(messageToEdit.text || "");
+      setIsEditDialogOpen(true);
     }
-  }
+  };
 
   const handleSaveEdit = () => {
     if (editingMessage && editedMessageContent.trim() !== "") {
@@ -124,34 +183,34 @@ export default function ChatPage() {
         { id: editingMessage.id, data: { text: editedMessageContent } },
         {
           onSuccess: () => {
-            setIsEditDialogOpen(false)
-            setEditingMessage(null)
-            setEditedMessageContent("")
+            setIsEditDialogOpen(false);
+            setEditingMessage(null);
+            setEditedMessageContent("");
           },
         },
-      )
+      );
     }
-  }
+  };
 
   const handleDeleteMessage = (messageId: string) => {
-    setMessageToDelete(messageId)
-    setIsDeleteDialogOpen(true)
-  }
+    setMessageToDelete(messageId);
+    setIsDeleteDialogOpen(true);
+  };
 
   const handleConfirmDelete = () => {
     if (messageToDelete) {
       deleteMessageMutation.mutate(messageToDelete, {
         onSuccess: () => {
-          setIsDeleteDialogOpen(false)
-          setMessageToDelete(null)
+          setIsDeleteDialogOpen(false);
+          setMessageToDelete(null);
         },
-      })
+      });
     }
-  }
+  };
 
   const handleBackToSidebar = () => {
-    setShowSidebar(true)
-  }
+    setShowSidebar(true);
+  };
 
   // Convert Message to MessageBubbleData
   const convertToMessageBubbleData = (message: Message): MessageBubbleData => ({
@@ -162,7 +221,17 @@ export default function ChatPage() {
     type: message.photoUrl ? "image" : message.fileUrl ? "file" : message.audioUrl ? "audio" : "text",
     senderName: message.sender?.name || selectedChat?.name,
     senderAvatar: message.sender?.avatarUrl || selectedChat?.avatar,
-  })
+  });
+
+  // Check if the selected user is online
+  const isUserOnline = selectedChat?.type === "user" && onlineUsers.some((u) => u.userId === selectedChat.id);
+
+  // Get typing users for the current chat
+  const currentRoomTypingUsers = selectedChat ? typingUsers.get(selectedChat.id) || new Set() : new Set();
+  console.log('socket connected:', socket?.connected);
+  console.log('typingUsers:', Array.from(typingUsers.entries()));
+  console.log('selectedChat:', selectedChat);
+  console.log('currentRoomTypingUsers:', currentRoomTypingUsers);
 
   if (!selectedChat) {
     return (
@@ -175,35 +244,7 @@ export default function ChatPage() {
           <p className="text-muted-foreground">Choose a contact or group to start messaging</p>
         </div>
       </div>
-    )
-  }
-
-  if (!selectedChat) {
-    return (
-      <div className="h-full flex items-center justify-center bg-gradient-to-br from-background to-background/50">
-        <div className="text-center space-y-4">
-          <div className="w-24 h-24 mx-auto rounded-full neo-gradient flex items-center justify-center">
-            <MessageCircle className="w-12 h-12 text-white" />
-          </div>
-          <h3 className="text-xl font-semibold">Select a conversation</h3>
-          <p className="text-muted-foreground">Choose a contact or group to start messaging</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!selectedChat) {
-    return (
-      <div className="h-full flex items-center justify-center bg-gradient-to-br from-background to-background/50">
-        <div className="text-center space-y-4">
-          <div className="w-24 h-24 mx-auto rounded-full neo-gradient flex items-center justify-center">
-            <MessageCircle className="w-12 h-12 text-white" />
-          </div>
-          <h3 className="text-xl font-semibold">Select a conversation</h3>
-          <p className="text-muted-foreground">Choose a contact or group to start messaging</p>
-        </div>
-      </div>
-    )
+    );
   }
 
   return (
@@ -232,7 +273,7 @@ export default function ChatPage() {
                       .join("")}
                   </AvatarFallback>
                 </Avatar>
-                {selectedChat.type === "user" && selectedChat.status === "online" && (
+                {selectedChat.type === "user" && isUserOnline && (
                   <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-background animate-pulse-glow"></div>
                 )}
               </div>
@@ -240,7 +281,9 @@ export default function ChatPage() {
                 <h3 className="font-semibold">{selectedChat.name}</h3>
                 <p className="text-sm text-muted-foreground">
                   {selectedChat.type === "user"
-                    ? selectedChat.status || "Offline"
+                    ? isUserOnline
+                      ? "Online"
+                      : "Offline"
                     : `${selectedChat.memberCount || 0} members`}
                 </p>
               </div>
@@ -273,9 +316,20 @@ export default function ChatPage() {
                   onDelete={handleDeleteMessage}
                 />
               ))}
+              {currentRoomTypingUsers.size > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-sm text-muted-foreground"
+                >
+                  {Array.from(currentRoomTypingUsers)
+                    .map((userId) => userMap.get(userId) || "Someone")
+                    .join(", ") + " is typing..."}
+                </motion.div>
+              )}
             </AnimatePresence>
           )}
-          {otherUserTyping && <TypingIndicator />}
           <div ref={messagesEndRef} />
         </div>
 
@@ -292,7 +346,7 @@ export default function ChatPage() {
             <div className="flex-1 relative">
               <Input
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                onChange={handleTyping}
                 placeholder="Type a message..."
                 className="pr-12 bg-background/50 border-border/50 focus:border-primary/50"
                 disabled={createMessageMutation.isPending}
@@ -415,5 +469,5 @@ export default function ChatPage() {
         </Portal>
       )}
     </>
-  )
+  );
 }

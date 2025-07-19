@@ -7,7 +7,10 @@ import { Sidebar } from "@/components/chat/Sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ChatProvider } from "@/components/chat/ChatContext";
+import { SocketProvider } from "@/components/socket/SocketContext";
 import TokenHandler from "@/components/chat/TokenHandler";
+
+
 
 export default function ChatLayout({
   children,
@@ -25,8 +28,10 @@ export default function ChatLayout({
 
   return (
     <>
-      <ChatProvider>
-        <div className="h-screen flex bg-background overflow-hidden">
+      <TokenHandler />
+      <SocketProvider>
+        <ChatProvider>
+          <div className="h-screen flex bg-background overflow-hidden">
           {/* Desktop Layout */}
           {!isMobile && (
             <>
@@ -82,7 +87,8 @@ export default function ChatLayout({
             </div>
           )}
         </div>
-      </ChatProvider>
+        </ChatProvider>
+      </SocketProvider>
     </>
   );
 }
