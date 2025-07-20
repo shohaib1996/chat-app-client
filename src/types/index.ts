@@ -22,9 +22,18 @@ export interface Message {
   groupId?: string
   seen: boolean
   createdAt: Date
-  sender?: User
-  receiver?: User
-  group?: Group
+  sender?: {
+    name?: string
+    avatarUrl?: string
+  }
+  receiver?: {
+    name?: string
+    avatarUrl?: string
+  }
+  group?: {
+    name?: string
+    avatarUrl?: string
+  }
 }
 
 export interface Group {
@@ -124,6 +133,20 @@ export interface MessageBubbleData {
   type: "text" | "image" | "file" | "audio"
   senderName?: string
   senderAvatar?: string
+  imageUrl?: string
+}
+
+export interface ChatContextType {
+  selectedChat: {
+    id: string
+    name: string
+    avatar?: string
+    type: "user" | "group"
+    memberCount?: number
+  } | null
+  setShowSidebar: (show: boolean) => void
+  typingUsers: Map<string, Set<string>>
+  onlineUsers: { userId: string }[]
 }
 export interface ApiUser {
   id: string;
@@ -139,3 +162,5 @@ export interface ApiGroup {
   avatarUrl: string;
   members?: ApiUser[];
 }
+
+

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { authAPI, messagesAPI, groupsAPI, groupMembersAPI } from "./api"
+import { authAPI, messagesAPI, groupsAPI, groupMembersAPI, uploadAPI } from "./api"
 import type {
   User,
   Message,
@@ -197,5 +197,12 @@ export const useDeleteGroupMember = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["groupMembers"] })
     },
+  })
+}
+
+// Upload queries
+export const useUploadImage = () => {
+  return useMutation<{ data: { url: string } }, Error, FormData>({
+    mutationFn: uploadAPI.uploadImage,
   })
 }

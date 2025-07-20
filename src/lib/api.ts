@@ -99,6 +99,15 @@ export const groupsAPI = {
   deleteGroup: (id: string): Promise<void> => api.delete(`/groups/${id}`),
 }
 
+export const uploadAPI = {
+  uploadImage: (data: FormData): Promise<{ data: { url: string } }> =>
+    api.post("/upload/image", data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
+}
+
 export const groupMembersAPI = {
   addGroupMember: (data: AddGroupMemberRequest): Promise<{ data: GroupMember }> => api.post("/groupmembers", data),
 

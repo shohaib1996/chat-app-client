@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { QueryProvider } from "@/components/QueryProvider/QueryProvider";
 import { AuthSessionProvider } from "@/components/session-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,6 +31,7 @@ export default function RootLayout({
               disableTransitionOnChange={false}
             >
               {children}
+               <Toaster />
             </ThemeProvider>
           </QueryProvider>
         </AuthSessionProvider>
