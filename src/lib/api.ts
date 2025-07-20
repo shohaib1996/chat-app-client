@@ -15,7 +15,7 @@ import type {
 
 // Create axios instance with base configuration
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://chat-app-backend-jf2u.onrender.com/api",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

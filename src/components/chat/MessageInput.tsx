@@ -1,43 +1,41 @@
-"use client"
+"use client";
 
-import React, { useRef, useState } from "react"
-import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Paperclip, Send, Smile, X } from "lucide-react"
-import Image from "next/image"
+import React, { useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Paperclip, Send, Smile, X } from "lucide-react";
+import Image from "next/image";
 
 interface MessageInputProps {
-  newMessage: string
-  setNewMessage: React.Dispatch<React.SetStateAction<string>>
-  selectedImage: File | null
-  setSelectedImage: (file: File | null) => void
-  imagePreview: string | null
-  setImagePreview: (url: string | null) => void
-  isUploading: boolean
-  handleSendMessage: (e: React.FormEvent) => void
-  handleTyping: (e: React.ChangeEvent<HTMLInputElement>) => void
-  handleFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void
-  handleRemoveImage: () => void
+  newMessage: string;
+  setNewMessage: React.Dispatch<React.SetStateAction<string>>;
+  selectedImage: File | null;
+  setSelectedImage: (file: File | null) => void;
+  imagePreview: string | null;
+  setImagePreview: (url: string | null) => void;
+  isUploading: boolean;
+  handleSendMessage: (e: React.FormEvent) => void;
+  handleTyping: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleRemoveImage: () => void;
 }
 
 export function MessageInput({
   newMessage,
   setNewMessage,
   selectedImage,
-  setSelectedImage,
   imagePreview,
-  setImagePreview,
   isUploading,
   handleSendMessage,
   handleTyping,
   handleFileSelect,
   handleRemoveImage,
 }: MessageInputProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-   const emojis = [
+  const emojis = [
     "😀",
     "😃",
     "😄",
@@ -201,13 +199,13 @@ export function MessageInput({
   ];
 
   const handleFileInputClick = () => {
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
 
   const addEmoji = (emoji: string) => {
-    setNewMessage((prev: string) => prev + emoji)
-    setShowEmojiPicker(false)
-  }
+    setNewMessage((prev: string) => prev + emoji);
+    setShowEmojiPicker(false);
+  };
 
   return (
     <>
@@ -241,8 +239,17 @@ export function MessageInput({
         animate={{ opacity: 1, y: 0 }}
         className="p-4 border-t border-border/50 bg-card/30 backdrop-blur-sm"
       >
-        <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+        <form
+          onSubmit={handleSendMessage}
+          className="flex items-center space-x-2"
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
           <Button
             type="button"
             variant="ghost"
@@ -295,7 +302,11 @@ export function MessageInput({
             {isUploading ? (
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                transition={{
+                  duration: 1,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "linear",
+                }}
                 className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
               />
             ) : (
@@ -305,5 +316,5 @@ export function MessageInput({
         </form>
       </motion.div>
     </>
-  )
+  );
 }

@@ -51,6 +51,7 @@ export function GroupInfoModal({ isOpen, onClose, groupId }: GroupInfoModalProps
       const filteredResults = (response.data as any).data.filter((user: User) => !memberUserIds.includes(user.id))
       setSearchResults(filteredResults)
     } catch (error) {
+      console.log(error)
       toast.error("Failed to search users")
       setSearchResults([])
     } finally {

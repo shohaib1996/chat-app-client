@@ -14,12 +14,7 @@ import type {
   UpdateGroupMemberRequest,
 } from "@/types"
 
-interface AuthProfileResponse {
-  data: User;
-}
-
-// Auth queries
-interface AuthProfileResponse {
+export interface AuthProfileResponse {
   data: User;
 }
 

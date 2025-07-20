@@ -64,7 +64,7 @@ export function DeleteGroupModal({ isOpen, onClose, groupId, groupName }: Delete
           {/* Content */}
           <div className="p-6">
             <p className="text-gray-600 dark:text-gray-400 mb-2">
-              Are you sure you want to delete the group <strong>"{groupName}"</strong>?
+              Are you sure you want to delete the group <strong>&quot;{groupName}&quot;</strong>?
             </p>
             <p className="text-sm text-gray-500 mb-6">
               This action cannot be undone. All messages and group data will be permanently deleted.
