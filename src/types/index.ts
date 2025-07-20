@@ -125,3 +125,17 @@ export interface MessageBubbleData {
   senderName?: string
   senderAvatar?: string
 }
+export interface ApiUser {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string;
+  status: string;
+}
+
+export interface ApiGroup {
+  id: string;
+  name: string;
+  avatarUrl: string;
+  members?: ApiUser[];
+}

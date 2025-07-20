@@ -53,6 +53,7 @@ export default function ChatPage() {
   const isMobile = useIsMobile();
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
@@ -92,24 +93,7 @@ export default function ChatPage() {
     };
   }, [socket, selectedChat]);
 
-  // Handle typing events
-  useEffect(() => {
-    if (!socket || !isTyping) return;
-
-    const roomId = selectedChat?.id; // Match backend's room
-    console.log('Emitting typing:', roomId); // Debug log
-    socket.emit("typing", roomId);
-
-    const typingTimeout = setTimeout(() => {
-      setIsTyping(false);
-      if (selectedChat) {
-        console.log('Emitting stopTyping:', roomId); // Debug log
-        socket.emit("stopTyping", roomId);
-      }
-    }, 2000); // Stop typing after 2 seconds of inactivity
-
-    return () => clearTimeout(typingTimeout);
-  }, [socket, isTyping, selectedChat]);
+  
 
   // Use React Query for messages
   const { data: messagesData, isLoading } = useMessages(
@@ -144,28 +128,48 @@ export default function ChatPage() {
 
       socket.emit("sendMessage", messageData); // Use socket to send message
       setNewMessage("");
-      setIsTyping(false);
-      const roomId = selectedChat.id; // Match backend's room
-      socket.emit("stopTyping", roomId);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      if (isTyping) {
+        setIsTyping(false);
+        const roomId = selectedChat.id;
+        socket.emit("stopTyping", roomId);
+      }
     } catch (error) {
       console.error("Failed to send message:", error);
     }
   };
 
   const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewMessage(e.target.value);
+    const value = e.target.value;
+    setNewMessage(value);
+
     if (!socket || !selectedChat) return;
 
-    const roomId = selectedChat.id; // Match backend's room
-    if (!isTyping && e.target.value) {
+    const roomId = selectedChat.id;
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    if (value.length > 0 && !isTyping) {
       setIsTyping(true);
-      console.log('Emitting typing:', roomId); // Debug log
+      console.log('Emitting typing:', roomId);
       socket.emit("typing", roomId);
-    } else if (isTyping && !e.target.value) {
+    } else if (value.length === 0 && isTyping) {
       setIsTyping(false);
-      console.log('Emitting stopTyping:', roomId); // Debug log
+      console.log('Emitting stopTyping:', roomId); 
       socket.emit("stopTyping", roomId);
     }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isTyping) {
+        setIsTyping(false);
+        console.log('Emitting stopTyping (timeout):', roomId);
+        socket.emit("stopTyping", roomId);
+      }
+    }, 2000); // Stop typing after 2 seconds of inactivity
   };
 
   const handleEditMessage = (messageId: string) => {
@@ -225,6 +229,7 @@ export default function ChatPage() {
 
   // Check if the selected user is online
   const isUserOnline = selectedChat?.type === "user" && onlineUsers.some((u) => u.userId === selectedChat.id);
+  
 
   // Get typing users for the current chat
   const currentRoomTypingUsers = selectedChat ? typingUsers.get(selectedChat.id) || new Set() : new Set();
